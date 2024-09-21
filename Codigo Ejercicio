@@ -1,0 +1,139 @@
+CREATE DATABASE LigaFutbol;
+USE LigaFutbol;
+
+
+CREATE TABLE Presidente (
+    num_doc INT PRIMARY KEY,
+    nombre VARCHAR(100),
+    fecha_nac DATE,
+    año_ingreso YEAR
+);
+
+CREATE TABLE Equipo (
+    codigo INT PRIMARY KEY,
+    nombre VARCHAR(100) UNIQUE,
+    estadio VARCHAR(100),
+    ciudad VARCHAR(100),
+    aforo INT,
+    presidente_num_doc INT,
+    FOREIGN KEY (presidente_num_doc) REFERENCES Presidente(num_doc)
+);
+
+
+CREATE TABLE Jugador (
+    codigo INT PRIMARY KEY,
+    nombre VARCHAR(100),
+    posicion VARCHAR(50),
+    fecha_nac DATE
+);
+
+
+CREATE TABLE Juega (
+    jugador_codigo INT,
+    equipo_codigo INT,
+    año YEAR,
+    PRIMARY KEY (jugador_codigo, equipo_codigo),
+    FOREIGN KEY (jugador_codigo) REFERENCES Jugador(codigo),
+    FOREIGN KEY (equipo_codigo) REFERENCES Equipo(codigo)
+);
+
+
+CREATE TABLE Partido (
+    codigo INT PRIMARY KEY,
+    fecha DATE,
+    goles_local INT,
+    goles_visitante INT,
+    equipo_local_codigo INT,
+    equipo_visitante_codigo INT,
+    FOREIGN KEY (equipo_local_codigo) REFERENCES Equipo(codigo),
+    FOREIGN KEY (equipo_visitante_codigo) REFERENCES Equipo(codigo)
+);
+
+
+CREATE TABLE Gol (
+    codigo INT PRIMARY KEY,
+    minuto INT,
+    descripcion VARCHAR(255),
+    jugador_codigo INT,
+    partido_codigo INT,
+    FOREIGN KEY (jugador_codigo) REFERENCES Jugador(codigo),
+    FOREIGN KEY (partido_codigo) REFERENCES Partido(codigo)
+);
+
+
+INSERT INTO Presidente (num_doc, nombre, fecha_nac, año_ingreso) VALUES
+(1, 'Carlos Pérez', '1965-03-15', 2010),
+(2, 'Ana López', '1970-06-30', 2015);
+
+
+INSERT INTO Equipo (codigo, nombre, estadio, ciudad, aforo, presidente_num_doc) VALUES
+(1, 'los tiburones', 'Estadio Tiburón', 'Ciudad del Mar', 50000, 1),
+(2, 'tigres', 'Estadio Felino', 'Ciudad Selva', 40000, 2);
+
+
+INSERT INTO Jugador (codigo, nombre, posicion, fecha_nac) VALUES
+(1, 'Juan Perea', 'defensa', '1985-05-20'),
+(2, 'Luis García', 'delantero', '1990-11-15'),
+(3, 'Carlos Torres', 'defensa', '1988-01-10');
+
+
+INSERT INTO Juega (jugador_codigo, equipo_codigo, año) VALUES
+(1, 1, 2023),
+(2, 2, 2023),
+(3, 1, 2023);
+
+
+INSERT INTO Partido (codigo, fecha, goles_local, goles_visitante, equipo_local_codigo, equipo_visitante_codigo) VALUES
+(1, '2023-08-15', 2, 1, 1, 2);
+
+
+INSERT INTO Gol (codigo, minuto, descripcion, jugador_codigo, partido_codigo) VALUES
+(1, 10, 'Cabeza', 1, 1),
+(2, 20, 'Penal', 2, 1),
+(3, 5, 'Tiro Libre', 3, 1);
+
+
+SELECT Gol.codigo
+FROM Jugador
+JOIN Gol ON Jugador.codigo = Gol.jugador_codigo
+WHERE Jugador.nombre = 'Juan Perea';
+
+SELECT Gol.codigo
+FROM Jugador
+JOIN Gol ON Jugador.codigo = Gol.jugador_codigo
+JOIN Partido ON Gol.partido_codigo = Partido.codigo
+WHERE Jugador.posicion = 'defensa'
+  AND Partido.goles_visitante >= 1;
+
+SELECT Presidente.nombre
+FROM Equipo
+JOIN Presidente ON Equipo.presidente_num_doc = Presidente.num_doc
+WHERE Equipo.nombre = 'los tiburones';
+
+SELECT Jugador.codigo, Jugador.nombre
+FROM Equipo
+JOIN Juega ON Equipo.codigo = Juega.equipo_codigo
+JOIN Jugador ON Juega.jugador_codigo = Jugador.codigo
+WHERE Equipo.nombre = 'tigres';
+
+SELECT Jugador.codigo, Jugador.nombre
+FROM Jugador
+LEFT JOIN Gol ON Jugador.codigo = Gol.jugador_codigo
+WHERE Gol.codigo IS NULL;
+
+SELECT Jugador.nombre
+FROM Jugador
+JOIN Juega ON Jugador.codigo = Juega.jugador_codigo
+JOIN Equipo ON Juega.equipo_codigo = Equipo.codigo
+JOIN Presidente ON Equipo.presidente_num_doc = Presidente.num_doc
+WHERE Jugador.codigo = Presidente.num_doc;
+
+SELECT Equipo.codigo, Equipo.nombre, COUNT(Gol.codigo) AS total_goles
+FROM Gol
+JOIN Jugador ON Gol.jugador_codigo = Jugador.codigo
+JOIN Juega ON Jugador.codigo = Juega.jugador_codigo
+JOIN Equipo ON Juega.equipo_codigo = Equipo.codigo
+WHERE Gol.minuto < 15
+GROUP BY Equipo.codigo, Equipo.nombre
+ORDER BY total_goles DESC;
+
